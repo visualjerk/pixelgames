@@ -148,7 +148,7 @@ class Ball {
     this.stage = app.stage
     this.height = 4
     this.width = 4
-    this.speed = 4
+    this.speed = 5
 
     this.moveTimeout = null
     
@@ -170,7 +170,8 @@ class Ball {
       this.direction = this.direction === 'left' ? 'right' : 'left'
       beep()
     } else if (this.left <= 0 || this.left >= this.stage.width - this.width) {
-      this.stage.scores[this.direction].add()
+      const scorePosition = this.direction === 'left' ? 'right' : 'left'
+      this.stage.scores[scorePosition].add()
       this.app.reset()
       return
     }
