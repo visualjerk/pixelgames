@@ -1,5 +1,5 @@
 const settings = {
-  DOT: 3,
+  DOT: 0.5,
   SPEED: 2,
 }
 
@@ -9,7 +9,7 @@ const theme = {
 }
 
 const getSize = size => {
-  return `${size * settings.DOT}px`
+  return `${size * settings.DOT}vmin`
 }
 
 const beep = () => {
@@ -22,12 +22,12 @@ class Player {
     this.bat = bat
   }
 
-  moveLeft(stop) {
-    this.bat.moveLeft(stop)
+  moveUp(stop) {
+    this.bat.moveUp(stop)
   }
 
-  moveRight(stop) {
-    this.bat.moveRight(stop)
+  moveDown(stop) {
+    this.bat.moveDown(stop)
   }
 }
 
@@ -38,7 +38,7 @@ class Score {
     this.el.style.color = theme.PRIMARY
     this.el.style.fontSize = '30px'
     this.el.style[position] = getSize(14)
-    this.el.style.left = getSize(5)
+    this.el.style.top = getSize(5)
     this.el.style.opacity = 0.4
     this.reset()
   }
@@ -94,11 +94,11 @@ class Message {
 class Bat {
   constructor(position, stage) {
     this.stage = stage
-    this.height = 5
-    this.width = 40
+    this.height = 40
+    this.width = 5
     this.offset = 5
-    this.moveLeftTimeout = null
-    this.moveRightTimeout = null
+    this.moveUpTimeout = null
+    this.moveDownTimeout = null
 
     this.el = document.createElement('div')
     this.el.style.position = 'absolute'
@@ -111,34 +111,34 @@ class Bat {
   }
 
   reset() {
-    this.left = this.stage.width / 2 - this.width / 2
-    clearTimeout(this.moveLeftTimeout)
-    clearTimeout(this.moveRightTimeout)
+    this.top = this.stage.height / 2 - this.height / 2
+    clearTimeout(this.moveUpTimeout)
+    clearTimeout(this.moveDownTimeout)
     this.updatePosition()
   }
 
-  moveLeft(stop) {
-    if (stop || this.left <= 0) {
-      clearTimeout(this.moveLeftTimeout)
+  moveUp(stop) {
+    if (stop || this.top <= 0) {
+      clearTimeout(this.moveUpTimeout)
       return
     }
-    this.left--
+    this.top--
     this.updatePosition()
-    this.moveLeftTimeout = setTimeout(this.moveLeft.bind(this), settings.SPEED)
+    this.moveUpTimeout = setTimeout(this.moveUp.bind(this), settings.SPEED)
   }
 
-  moveRight(stop) {
-    if (stop || this.left >= this.stage.width - this.width) {
-      clearTimeout(this.moveRightTimeout)
+  moveDown(stop) {
+    if (stop || this.top >= this.stage.height - this.height) {
+      clearTimeout(this.moveDownTimeout)
       return
     }
-    this.left++
+    this.top++
     this.updatePosition()
-    this.moveRightTimeout = setTimeout(this.moveRight.bind(this), settings.SPEED)
+    this.moveDownTimeout = setTimeout(this.moveDown.bind(this), settings.SPEED)
   }
 
   updatePosition() {
-    this.el.style.transform = `translateX(${getSize(this.left)})`
+    this.el.style.transform = `translateY(${getSize(this.top)})`
   }
 }
 
@@ -162,14 +162,14 @@ class Ball {
   }
 
   move() {
-    if (this.left <= 0 || this.left >= this.stage.width - this.width) {
-      this.vector[0] = -this.vector[0]
+    if (this.top <= 0 || this.top >= this.stage.height - this.height) {
+      this.vector[1] = -this.vector[1]
       beep()
     } else if (this.hasHitBat()) {
       this.calculateNewVector()
-      this.direction = this.direction === 'bottom' ? 'top' : 'bottom'
+      this.direction = this.direction === 'left' ? 'right' : 'left'
       beep()
-    } else if (this.top <= 0 || this.top >= this.stage.height - this.height) {
+    } else if (this.left <= 0 || this.left >= this.stage.width - this.width) {
       this.stage.scores[this.direction].add()
       this.app.reset()
       return
@@ -183,33 +183,33 @@ class Ball {
   reset() {
     this.left = this.stage.width / 2 - this.width / 2
     this.top = this.stage.height / 2 - this.height / 2
-    this.vector = [0, 1]
-    this.direction = 'bottom'
+    this.vector = [1, 0]
+    this.direction = 'right'
     clearTimeout(this.moveTimeout)
     this.updatePosition()
   }
 
   hasHitBat() {
     const bat = this.stage.bats[this.direction]
-    if (this.direction === 'top' && this.top > bat.height + bat.offset) {
+    if (this.direction === 'left' && this.left > bat.width + bat.offset) {
       return false
     }
-    if (this.direction === 'bottom' && this.top < this.stage.height - bat.height - bat.offset) {
+    if (this.direction === 'right' && this.left < this.stage.width - bat.width - bat.offset) {
       return false
     }
-    if (this.left <= bat.left - this.width || this.left >= bat.left + bat.width + this.width) {
+    if (this.top <= bat.top - this.height || this.top >= bat.top + bat.height + this.height) {
       return false
     }
     return true
   }
 
   calculateNewVector() {
-    const direction = this.direction === 'bottom' ? -1 : 1
+    const direction = this.direction === 'right' ? -1 : 1
     const bat = this.stage.bats[this.direction]
-    const hitValue = (this.left - bat.left + this.width / 2) / bat.width
+    const hitValue = (this.top - bat.top + this.height / 2) / bat.height
     const angle = 0.2 * Math.PI + 0.6 * Math.PI * hitValue
-    this.vector[0] = -Math.cos(angle)
-    this.vector[1] = Math.sin(angle) * direction
+    this.vector[0] = Math.sin(angle) * direction
+    this.vector[1] = -Math.cos(angle)
   }
 
   updatePosition() {
@@ -261,8 +261,8 @@ class App {
 
   setupStage() {
     this.stage = new Stage(this)
-    this.createPlayer('top')
-    this.createPlayer('bottom')
+    this.createPlayer('left')
+    this.createPlayer('right')
     this.ball = new Ball(this)
     this.stage.addBall(this.ball)
     this.message = new Message()
@@ -311,14 +311,14 @@ class App {
     }
     const stop = event.type === 'keyup'
     switch(event.key) {
-      case 'ArrowLeft':
-        this.players.bottom.moveLeft(stop); break
-      case 'ArrowRight':
-        this.players.bottom.moveRight(stop); break
-      case 'a':
-        this.players.top.moveLeft(stop); break
-      case 'd':
-        this.players.top.moveRight(stop); break
+      case 'ArrowUp':
+        this.players.right.moveUp(stop); break
+      case 'ArrowDown':
+        this.players.right.moveDown(stop); break
+      case 'w':
+        this.players.left.moveUp(stop); break
+      case 's':
+        this.players.left.moveDown(stop); break
     }
   }
 }
