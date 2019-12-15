@@ -76,6 +76,35 @@ class Foe {
   }
 }
 
+const SCORE_KEY = 'TREX_HIGHSCORE'
+
+class ScoreBoard {
+  constructor() {
+    this.score = 0
+    this.highscore = localStorage.getItem(SCORE_KEY) || 0
+
+    this.el = document.createElement('div')
+    this.el.style.position = 'absolute'
+    this.el.style.top = getSize(2)
+    this.el.style.right = getSize(2)
+    this.el.style.color = theme.PRIMARY
+  }
+
+  countUp() {
+    this.score++
+  }
+
+  save() {
+    if (this.score > this.highscore) {
+      localStorage.setItem(SCORE_KEY, this.score)
+    }
+  }
+
+  render() {
+    this.el.innerHTML = `Score: ${this.score} | Hi: ${this.highscore}`
+  }
+}
+
 class Stage {
   constructor(el) {
     this.height = 100
@@ -98,17 +127,20 @@ class Stage {
 class App {
   constructor(selector) {
     this.el = document.querySelector(selector)
-    this.foes = []
-    this.tickId
   }
 
   init() {
+    this.foes = []
+    this.loop = null
     this.stage = new Stage(this.el)
     this.trex = new Trex()
     this.stage.add(this.trex)
+    this.scoreBoard = new ScoreBoard()
+    this.stage.add(this.scoreBoard)
     this.initListeners()
-    this.initFoeGenerator()
     this.start()
+    this.generateFoe()
+    this.addScore()
   }
 
   initListeners() {
@@ -122,16 +154,24 @@ class App {
     return
   }
 
-  initFoeGenerator() {
+  generateFoe() {
+    if (this.loop === null) return
     const foe = new Foe()
     this.stage.add(foe)
     this.foes.push(foe)
     foe.move()
-    setTimeout(this.initFoeGenerator.bind(this), 2000)
+    setTimeout(this.generateFoe.bind(this), 2000)
+  }
+
+  addScore() {
+    if (this.loop === null) return
+    this.scoreBoard.countUp()
+    setTimeout(this.addScore.bind(this), 500)
   }
 
   tick() {
     this.trex.render()
+    this.scoreBoard.render()
     this.foes.forEach(foe => {
       foe.render()
       if (this.collision(this.trex, foe)) {
@@ -142,12 +182,13 @@ class App {
   }
 
   start() {
-    this.tickId = setInterval(this.tick.bind(this), 5)
+    this.loop = setInterval(this.tick.bind(this), 5)
   }
 
   stop() {
-    clearInterval(this.tickId)
-    this.tickId = null
+    this.scoreBoard.save()
+    clearInterval(this.loop)
+    this.loop = null
   }
 
   collision(a, b) {
